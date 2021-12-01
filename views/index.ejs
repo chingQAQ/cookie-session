@@ -1,0 +1,117 @@
+<%
+  const _pos = pos;
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+  <title><%= title %></title>
+</head>
+<style>
+  body,
+  html {
+    width: 100vw;
+    height: 100vh;
+    font-size: 100%;
+  }
+
+  .rect {
+    position: absolute;
+    width: calc(1rem * (100 / 16));
+    height: calc(1rem * (100 / 16));
+    background-color: #000;
+    transform: translate(0, 0);
+    cursor: pointer;
+  }
+</style>
+<body>
+  <%= view %>
+  <div class="rect" style="transform: translate(<%= pos.x %>px, <%= pos.y %>px)"></div>
+  <script>
+    const rect = new Rect(document.querySelector('.rect'));
+    
+    function Rect(el) {
+      let active = false;
+      let store = { x: 0, y: 0 };
+
+      const _rect = this;
+
+      _rect.el = el;
+      _rect.pos = new RectPosition();
+      _rect.render = render;
+
+      _rect.el.addEventListener('pointerdown', (e) => {
+        active = true;
+        store = {
+          x: e.x,
+          y: e.y
+        };
+      })
+
+      _rect.el.addEventListener('pointermove', (e) => {
+        if (active) {
+          const current = {
+            x: e.x - store.x,
+            y: e.y - store.y
+          };
+        
+          store.x = e.x;
+          store.y = e.y;
+
+          _rect.pos.update(current);
+          _rect.render();
+        }
+      })
+
+      _rect.el.addEventListener('pointerup', () => {
+        active = false;
+
+        (async () => {
+          _rect.el.style.pointerEvents = 'none';
+
+          const res = await fetch('/', {
+            method: 'POST',
+            body: JSON.stringify({
+              x: _rect.pos.x,
+              y: _rect.pos.y
+            }),
+            headers: new Headers({
+              'Content-Type': 'application/json'
+            })
+          })
+
+          _rect.el.style.pointerEvents = 'auto';
+
+        })()
+      })
+
+      function render () {
+        requestAnimationFrame(() => {
+          _rect.el.style.transform = 'translate(' + _rect.pos.x + 'px,' + _rect.pos.y + 'px)';
+        })
+      }
+    }
+
+    function RectPosition() {
+      const self = this;
+
+      self.x = <%= _pos.x %> ?? 0;
+      self.y = <%= _pos.y %> ?? 0;
+      self.update = update
+
+      return self;
+
+      function update ({ x, y }) {
+        self.x += x
+        self.y += y
+      }
+    }
+
+  </script>
+</body>
+</html>
